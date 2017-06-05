@@ -6,7 +6,7 @@ import { filter } from 'lodash/collection';
 import { escapeRegExp } from 'lodash/string';
 
 // local dependencies
-import { Container, Search, Grid, Divider, Modal } from 'semantic-ui-react';
+import { Container, Search, Grid, Divider, Modal, Button } from 'semantic-ui-react';
 import MenuBar from '../components/MenuBar';
 import GridEvent from '../components/GridEvent';
 import Event from '../components/Event';
@@ -20,9 +20,11 @@ class Events extends Component {
     this.state = {
       modalFocus: false,
       page: 1,
+      weather : [],
     };
 
     this.handleElementClick = this.handleElementClick.bind(this);
+    this.getWeather = this.getWeather.bind(this);
   }
 
   componentWillMount() {
@@ -62,6 +64,29 @@ class Events extends Component {
       });
     }, 500);
   }
+  
+  getWeather(){
+    const { user } = this.props;
+    const geoLoc =  user.events[0].lat + ',' + user.events[0].lng;
+    const time = moment(user.events.date_time).format('X');
+ 
+    fetch(`/api/weather?info=${time}&loc=${geoLoc}`,{
+      headers: {'Content-Type': 'application/json'},
+      method: "GET",
+    })
+    .then((response) => {
+       console.log('get weather is being called');
+      return response.json();
+    })
+    .then((data) => {
+     
+      let arr = [];
+      arr.push(data.hourly.summary);
+      arr.push(data.hourly.data[0].temperature);
+      this.setState({weather : arr});
+      user.events.weather = this.state.weather
+    })
+  }
 
   render = () => {
     const { eventsList, user } = this.props;
@@ -91,6 +116,7 @@ class Events extends Component {
           onClose={() => this.clearModalFocus()}
           size="small"
           open={Boolean(this.state.modalFocus)}
+         
         >
           <Event
             parent="Grid"
@@ -99,6 +125,8 @@ class Events extends Component {
             deleteClick=""
             changeModalFocusClick=""
             joinEvent={this.handleJoinEvent}
+            weather={this.state.weather}
+          
           />
         </Modal>
         <Waypoint
